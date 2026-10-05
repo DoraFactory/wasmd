@@ -25,6 +25,10 @@ standalone SDK 0.55 port of the upstream wasmd CLI/application.
   relying on that helper need separate SDK 0.55 adaptation and are not claimed
   to pass. This branch does not claim upstream `go test ./...` acceptance.
 
+* Adapt the legacy v2 migration test to use its read-only Subspace interface
+  with a separate KV parameter fixture. This removes an obsolete x/params keeper
+  dependency while preserving all four parameter migration cases.
+
 The module path stays `github.com/CosmWasm/wasmd`. The consuming application uses
 `replace github.com/CosmWasm/wasmd => github.com/DoraFactory/wasmd <fixed version>`.
 The application selects SDK 0.55, CometBFT 0.40 and the pinned IBC compatibility
