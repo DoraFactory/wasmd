@@ -85,6 +85,8 @@ var defaultAcceptedAccountTypes = map[reflect.Type]struct{}{
 
 // Keeper will have a reference to Wasm Engine with it's own data directory.
 type Keeper struct {
+	// deploymentDisabled is fixed by the application, never a node-local flag.
+	deploymentDisabled bool
 	// The (unexposed) keys used to access the stores from the Context.
 	storeService          corestoretypes.KVStoreService
 	cdc                   codec.Codec
@@ -156,6 +158,9 @@ func (k Keeper) GetGasRegister() types.GasRegister {
 }
 
 func (k Keeper) create(ctx context.Context, creator sdk.AccAddress, wasmCode []byte, instantiateAccess *types.AccessConfig, authZ types.AuthorizationPolicy) (codeID uint64, checksum []byte, err error) {
+	if k.deploymentDisabled {
+		return 0, nil, sdkerrors.ErrUnauthorized.Wrap("contract deployment is disabled")
+	}
 	if creator == nil {
 		return 0, checksum, errorsmod.Wrap(sdkerrors.ErrInvalidAddress, "cannot be nil")
 	}
@@ -270,6 +275,9 @@ func (k Keeper) instantiate(
 	addressGenerator AddressGenerator,
 	authPolicy types.AuthorizationPolicy,
 ) (sdk.AccAddress, []byte, error) {
+	if k.deploymentDisabled {
+		return nil, nil, sdkerrors.ErrUnauthorized.Wrap("contract deployment is disabled")
+	}
 	defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "instantiate") // nolint:staticcheck // TODO update to OTEL
 
 	if creator == nil {
@@ -480,6 +488,9 @@ func (k Keeper) migrate(
 	msg []byte,
 	authZ types.AuthorizationPolicy,
 ) ([]byte, error) {
+	if k.deploymentDisabled {
+		return nil, sdkerrors.ErrUnauthorized.Wrap("contract migration is disabled")
+	}
 	defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "migrate") // nolint:staticcheck // TODO update to OTEL
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
