@@ -12,6 +12,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/CosmWasm/wasmd/x/wasm/types"
 )
@@ -28,6 +29,9 @@ func (k Keeper) OnOpenChannel(
 	contractAddr sdk.AccAddress,
 	msg wasmvmtypes.IBCChannelOpenMsg,
 ) (string, error) {
+	if k.deploymentDisabled {
+		return "", sdkerrors.ErrUnauthorized.Wrap("new Wasm IBC channels are disabled")
+	}
 	defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "ibc-open-channel") // nolint:staticcheck // TODO update to OTEL
 	contractInfo, codeInfo, prefixStore, err := k.contractInstance(ctx, contractAddr)
 	if err != nil {
@@ -77,6 +81,10 @@ func (k Keeper) OnConnectChannel(
 	contractAddr sdk.AccAddress,
 	msg wasmvmtypes.IBCChannelConnectMsg,
 ) error {
+	// Also stop handshakes that were INIT/TRYOPEN before this policy activated.
+	if k.deploymentDisabled {
+		return sdkerrors.ErrUnauthorized.Wrap("new Wasm IBC channels are disabled")
+	}
 	defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "ibc-connect-channel") // nolint:staticcheck // TODO update to OTEL
 	contractInfo, codeInfo, prefixStore, err := k.contractInstance(ctx, contractAddr)
 	if err != nil {
